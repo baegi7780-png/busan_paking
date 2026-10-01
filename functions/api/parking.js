@@ -3,12 +3,12 @@ const SNAPSHOT={"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERV
 const CATALOG={"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"items":{"item":[{"parkgcd":"A01","parknm":"반송1, 3동 공영"},{"parkgcd":"A02","parknm":"삼락재첩거리"},{"parkgcd":"A03","parknm":"수변어린이공원"},{"parkgcd":"A04","parknm":"장산역 1번"},{"parkgcd":"A05","parknm":"장산역 2번"},{"parkgcd":"A06","parknm":"좌1동"},{"parkgcd":"A07","parknm":"노포역"},{"parkgcd":"A09","parknm":"두산위브 뒤"},{"parkgcd":"A10","parknm":"대우1차아파트 앞"},{"parkgcd":"A11","parknm":"부산기계공고 후문"},{"parkgcd":"A12","parknm":"해운대 센텀시티"},{"parkgcd":"A13","parknm":"반여도서관 앞"},{"parkgcd":"A14","parknm":"동대신동"},{"parkgcd":"A15","parknm":"신선3동"},{"parkgcd":"A16","parknm":"영선대로 지하 공영"},{"parkgcd":"A17","parknm":"동백사거리"},{"parkgcd":"A18","parknm":"중동이마트 옆"},{"parkgcd":"A19","parknm":"부산대역(남측)"},{"parkgcd":"A20","parknm":"부산대역(북측)"},{"parkgcd":"A21","parknm":"화명역"},{"parkgcd":"A22","parknm":"학장천 복개"},{"parkgcd":"A23","parknm":"수변공원"},{"parkgcd":"A24","parknm":"중동역"},{"parkgcd":"A25","parknm":"미포공영"},{"parkgcd":"A26","parknm":"온천장역(남측)"},{"parkgcd":"A27","parknm":"구서역"},{"parkgcd":"A28","parknm":"중앙공원"},{"parkgcd":"A29","parknm":"장전역"},{"parkgcd":"A30","parknm":"사상역 광장"},{"parkgcd":"A32","parknm":"남산역"},{"parkgcd":"A33","parknm":"하단역"},{"parkgcd":"A34","parknm":"명륜역"},{"parkgcd":"A35","parknm":"동래역"},{"parkgcd":"A36","parknm":"해운대광장"},{"parkgcd":"A37","parknm":"롯데 광복점 뒤(2)"},{"parkgcd":"A40","parknm":"반여2배수지"},{"parkgcd":"A41","parknm":"요트경기장 앞 1구역"},{"parkgcd":"A42","parknm":"삼락천로"},{"parkgcd":"A43","parknm":"부전복개도로1"},{"parkgcd":"A44","parknm":"부전복개도로2"},{"parkgcd":"A45","parknm":"적십자회관"},{"parkgcd":"A48","parknm":"대연고가밑"},{"parkgcd":"A49","parknm":"골드테마거리"},{"parkgcd":"A50","parknm":"요트경기장 앞 2구역(대형)"},{"parkgcd":"A251","parknm":"구포대교밑"},{"parkgcd":"A268","parknm":"주례역주변복개"},{"parkgcd":"A432","parknm":"수안동주차빌딩"},{"parkgcd":"A433","parknm":"구남역"},{"parkgcd":"A434","parknm":"만덕2동사앞복개"},{"parkgcd":"A435","parknm":"예비"}]},"numOfRows":"50","pageNo":"1","totalCount":"50"}}};
 const BASE='https://apis.data.go.kr/6260000/BusanPblcPrkngInfoService/getPblcPrkngInfo';
 let memory=new Map();
-function unpack(json){const r=json?.response;if(!r||String(r.header?.resultCode)!=='00')throw Error('upstream');const i=r.body?.items?.item;return {items:i?(Array.isArray(i)?i:[i]):[],total:Number(r.body?.totalCount)};}
+function unpack(json){const r=json?.response;if(!r)throw Error('invalid_response');if(String(r.header?.resultCode)!=='00'){const code=String(r.header?.resultCode||'');throw Error('api_'+(/^\d{1,3}$/.test(code)?code:'unknown'));}const i=r.body?.items?.item;return {items:i?(Array.isArray(i)?i:[i]):[],total:Number(r.body?.totalCount)};}
 async function fetchAll(endpoint,key){
- const url=new URL(endpoint);if(url.hostname!=='apis.data.go.kr'||!['https:','http:'].includes(url.protocol)||url.username||url.password||url.port)throw Error('configuration');
+ let url;try{url=new URL(String(endpoint).trim());}catch{throw Error('configuration');}if(url.hostname!=='apis.data.go.kr'||!['https:','http:'].includes(url.protocol)||url.username||url.password||url.port)throw Error('configuration');
  url.protocol='https:';url.searchParams.set('serviceKey',key);url.searchParams.set('resultType','json');url.searchParams.set('numOfRows','1000');
  let out=[];for(let page=1;page<=30;page++){
-  url.searchParams.set('pageNo',String(page));const r=await fetch(url,{signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error('upstream');const data=unpack(await r.json());out.push(...data.items);
+  url.searchParams.set('pageNo',String(page));const r=await fetch(url,{signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error('http_'+r.status);const text=await r.text();let json;try{json=JSON.parse(text);}catch{const m=text.match(/<(?:resultCode|returnReasonCode)>\s*(\d{1,3})\s*<\//i);if(m)throw Error('api_'+m[1]);throw Error('non_json');}const data=unpack(json);out.push(...data.items);
   if(Number.isFinite(data.total)&&out.length>=data.total)return out;
   if(!data.items.length)return out;
  }throw Error('pagination');
@@ -17,15 +17,24 @@ async function cached(label,url,key,ttl){const old=memory.get(label);if(old&&Dat
 function validStatus(p){return Number.isInteger(p.curravacnt)&&Number.isInteger(p.maxcnt)&&Number.isInteger(p.parkingcnt)&&p.maxcnt>0&&p.curravacnt>=0&&p.curravacnt<=p.maxcnt&&p.parkingcnt>=0&&p.parkingcnt<=p.maxcnt&&p.curravacnt+p.parkingcnt===p.maxcnt;}
 function nameKey(s){return String(s||'').replace(/공영주차장|주차장|공영|\s/g,'');}
 async function dataset(env){
- const key=env.BUSAN_SERVICE_KEY;let status=unpack(SNAPSHOT).items, catalog=unpack(CATALOG).items, basics=[],live=false,basicOk=false;
+ const key=String(env.BUSAN_SERVICE_KEY||'').trim();let failure=key?'missing_url':'missing_key';let status=unpack(SNAPSHOT).items, catalog=unpack(CATALOG).items, basics=[],live=false,basicOk=false;
  if(key){const results=await Promise.allSettled([
   env.BUSAN_REALTIME_URL?cached('status',env.BUSAN_REALTIME_URL,key,300000):Promise.reject(Error('missing')),
   cached('basic',BASE,key,86400000),
   env.BUSAN_CATALOG_URL?cached('catalog',env.BUSAN_CATALOG_URL,key,86400000):Promise.resolve(catalog)
- ]);if(results[0].status==='fulfilled'){status=results[0].value;live=true;}if(results[1].status==='fulfilled'){basics=results[1].value;basicOk=true;}if(results[2].status==='fulfilled')catalog=results[2].value;}
+ ]);if(results[0].status==='fulfilled'){status=results[0].value;live=true;}else{failure=results[0].reason?.message||'network';}if(results[1].status==='fulfilled'){basics=results[1].value;basicOk=true;}if(results[2].status==='fulfilled')catalog=results[2].value;}
  const byCode=new Map(catalog.map(p=>[p.parkgcd,p.parknm]));const byName=new Map();for(const b of basics){const n=nameKey(b.pkNam);byName.set(n,[...(byName.get(n)||[]),b]);}
  const items=status.map(p=>{const name=p.parknm||byCode.get(p.parkgcd)||p.parkgcd;const matches=byName.get(nameKey(name))||[];const b=matches.length===1?matches[0]:null;return {...p,parknm:name,valid:validStatus(p),basic:b};});
- return {items,live,basicOk,basicCount:basics.length,checkedAt:new Date().toISOString(),message:live?'실시간 API 응답 · 5분 간격 자동 확인':env.BUSAN_REALTIME_URL?'실시간 API 연결 실패 · 첨부 응답을 표시합니다':'실시간 API 연결 대기 · 첨부 응답을 표시합니다'};
+ return {items,live,basicOk,basicCount:basics.length,checkedAt:new Date().toISOString(),message:live?'실시간 API 응답 · 5분 간격 자동 확인':'실시간 API 연결 실패: '+failureText(failure)+' · 첨부 응답을 표시합니다'};
+}
+
+function failureText(code){
+ const labels={missing_key:'BUSAN_SERVICE_KEY 인증키가 설정되지 않았습니다',missing_url:'BUSAN_REALTIME_URL 주소가 설정되지 않았습니다',missing:'BUSAN_REALTIME_URL 주소가 설정되지 않았습니다',configuration:'API 주소 형식을 확인해주세요',invalid_response:'예상한 API 응답 구조가 아닙니다',non_json:'API가 JSON 대신 다른 응답을 반환했습니다',pagination:'전체 데이터 조회를 완료하지 못했습니다',api_20:'인증키 누락 또는 API 이용 권한 오류(20)',api_22:'일일 API 호출량 초과(22)',api_30:'등록되지 않은 인증키(30)',api_31:'인증키 사용 기한 만료(31)'};
+ if(labels[code])return labels[code];
+ if(/^http_\d{3}$/.test(code))return 'API HTTP 오류 '+code.slice(5);
+ if(/^api_\d{1,3}$/.test(code))return '공공데이터 API 오류 '+code.slice(4);
+ if(code==='The operation was aborted due to timeout'||code==='The operation was aborted.')return 'API 응답 시간 초과';
+ return '서버에서 API에 연결하지 못했습니다';
 }
 
 export async function onRequestGet({env}) {
