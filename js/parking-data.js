@@ -28,7 +28,7 @@ export function summary(items, data, now=Date.now()) {
 }
 export function hasLocation(p) { const l=p.location;return Boolean(l && Number.isFinite(l.lat) && Number.isFinite(l.lng) && l.lat>=34.8 && l.lat<=35.6 && l.lng>=128.7 && l.lng<=129.4); }
 export function links(p) {
-  const text=encodeURIComponent(p.address || '부산 '+p.parknm+' 주차장');
+  const text=encodeURIComponent('부산 '+p.parknm);
   const search='https://map.kakao.com/link/search/'+text;
-  return hasLocation(p) ? {map:'https://map.kakao.com/link/map/'+encodeURIComponent(p.parknm)+','+p.location.lat+','+p.location.lng,route:'https://map.kakao.com/link/to/'+encodeURIComponent(p.parknm)+','+p.location.lat+','+p.location.lng} : {map:search,route:null};
+  return {map:search,route:null};
 }

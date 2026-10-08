@@ -7,7 +7,7 @@ const clean=v=>v===undefined||v===null||String(v).trim()==='-'?'':String(v).trim
 const dateText=v=>{const t=timestamp(v);return Number.isFinite(t)?new Date(t).toLocaleString('ko-KR',{timeZone:'Asia/Seoul',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'시각 미제공';};
 const labels={available:'자리 있음',busy:'자리 적음',full:'만차',stale:'현재 잔여면 확인 불가',unknown:'정보 확인 필요'};
 const opened=new Set(), cards=new Map();
-let data=null, busy=false, lastAttempt=0, map=null, layer=null, mapLoading=null, lastMapFilter='';
+let data=null, busy=false, lastAttempt=0;
 const options=()=>({query:$('query').value,district:$('district').value,filter:$('filter').value,sort:$('sort').value});
 const visible=()=>selectItems(data,options());
 
@@ -16,14 +16,14 @@ function details(p){
  if(!b)return '<p class="meta">주소·요금 정보 확인 중</p>';
  const time=(start,end)=>clean(start)&&clean(end)?esc(start)+' ~ '+esc(end):'정보 없음';
  const fee=clean(b.tenMin)&&Number(b.tenMin)>=0&&clean(b.pkBascTime)&&Number(b.pkBascTime)>0?esc(b.pkBascTime)+'분 / '+fmt(Number(b.tenMin))+'원':'정보 없음';
- const pairs=[['주소',esc(p.address||'상세 주소 미제공')],['평일',time(b.svcSrtTe,b.svcEndTe)],['토요일',time(b.satSrtTe,b.satEndTe)],['공휴일',time(b.hldSrtTe,b.hldEndTe)],['기본요금',fee],['원본 기준일',esc(clean(b.fnlDt)||'미제공')]];
+ const pairs=[['주소(공공데이터 기준)',esc(p.address||'상세 주소 미제공')],['평일',time(b.svcSrtTe,b.svcEndTe)],['토요일',time(b.satSrtTe,b.satEndTe)],['공휴일',time(b.hldSrtTe,b.hldEndTe)],['기본요금',fee],['원본 기준일',esc(clean(b.fnlDt)||'미제공')]];
  const phone=clean(b.tponNum);if(phone)pairs.push(['전화',/^[0-9+() -]+$/.test(phone)?'<a data-focus="phone" href="tel:'+phone.replace(/[^0-9+]/g,'')+'">'+esc(phone)+'</a>':esc(phone)]);
  return '<details'+(opened.has(p.parkgcd)?' open':'')+'><summary data-focus="details">주소·요금·운영시간</summary><dl>'+pairs.map(([k,v])=>'<dt>'+k+'</dt><dd>'+v+'</dd>').join('')+'</dl><p class="meta">'+(p.basicSource==='api'?'공공데이터 기본정보':'원본 대조 후 보관한 기본정보')+' · 요금과 운영시간은 현장 안내를 함께 확인하세요.</p></details>';
 }
 function cardMarkup(p){
  const status=statusOf(p,data), current=usable(p,data), url=links(p);
  const last=p.valid&&!current?'최근 확인된 잔여 '+fmt(p.curravacnt)+'면 · 현재 수치 아님':!p.valid?'수치가 없거나 총면수와 일치하지 않습니다.':'주차 중 '+fmt(p.parkingcnt)+'대';
- return '<div class="row"><span class="district">'+esc(p.district||'지역 정보 없음')+'</span><span class="pill '+status+'">'+labels[status]+'</span></div><h2>'+esc(p.parknm)+'</h2><p class="address">'+esc(p.address||'상세 주소 미제공')+'</p><div class="availability">'+(current?fmt(p.curravacnt):'—')+' <small>/ '+(p.maxcnt>0?fmt(p.maxcnt):'—')+'면</small></div><div class="track" aria-hidden="true"><i style="width:'+(current?p.curravacnt/p.maxcnt*100:0)+'%"></i></div><p class="meta">'+last+'</p>'+details(p)+'<div class="bottom"><span class="meta">데이터 갱신 '+esc(dateText(p.lastupdatetime))+'<br>코드 '+esc(p.parkgcd)+'</span><div class="actions"><a data-focus="map" target="_blank" rel="noopener noreferrer" href="'+esc(url.map)+'">'+(hasLocation(p)?'위치 보기':'지도 검색')+' ↗</a>'+(url.route?'<a data-focus="route" target="_blank" rel="noopener noreferrer" href="'+esc(url.route)+'">길찾기 ↗</a>':'')+'</div></div>';
+ return '<div class="row"><span class="district">'+esc(p.district||'지역 정보 없음')+'</span><span class="pill '+status+'">'+labels[status]+'</span></div><h2>'+esc(p.parknm)+'</h2><p class="address">'+'주소(공공데이터 기준): '+esc(p.address||'상세 주소 미제공')+'</p><p class="address-note">실제 위치와 다를 수 있습니다. 카카오맵 검색 결과에서 장소를 확인하세요.</p><div class="availability">'+(current?fmt(p.curravacnt):'—')+' <small>/ '+(p.maxcnt>0?fmt(p.maxcnt):'—')+'면</small></div><div class="track" aria-hidden="true"><i style="width:'+(current?p.curravacnt/p.maxcnt*100:0)+'%"></i></div><p class="meta">'+last+'</p>'+details(p)+'<div class="bottom"><span class="meta">데이터 갱신 '+esc(dateText(p.lastupdatetime))+'<br>코드 '+esc(p.parkgcd)+'</span><div class="actions"><a data-focus="map" target="_blank" rel="noopener noreferrer" href="'+esc(url.map)+'">'+'카카오맵에서 검색'+' ↗</a>'+(url.route?'<a data-focus="route" target="_blank" rel="noopener noreferrer" href="'+esc(url.route)+'">길찾기 ↗</a>':'')+'</div></div>';
 }
 function updateDistricts(){
  const selected=$('district').value;
@@ -66,7 +66,7 @@ function render(){
  }
  if(!items.length){const empty=document.createElement('p');empty.className='empty';empty.textContent=data.items.length?'검색 조건에 맞는 주차장이 없습니다.':'현재 조회 정보를 가져오지 못했습니다. 잠시 후 다시 확인해주세요.';$('cards').append(empty);}
  if(focusCode&&focusName){const node=cards.get(focusCode);const target=node?.querySelector('[data-focus="'+focusName+'"]');if(target?.isConnected)target.focus({preventScroll:true});else {$('resultCount').setAttribute('tabindex','-1');$('resultCount').focus({preventScroll:true});}}
- if(!$('mapPanel').hidden)updateMap();
+ 
 }
 $('cards').addEventListener('toggle',event=>{if(event.target.tagName!=='DETAILS')return;const code=event.target.closest('[data-code]').dataset.code;if(event.target.open)opened.add(code);else opened.delete(code);},true);
 function remember(){if(data?.items.length&&!data.degraded)try{sessionStorage.setItem('busan-parking-last-success',JSON.stringify(data));}catch{}}
@@ -83,26 +83,6 @@ async function load(){
    else{$('notice').textContent='주차 정보를 불러오지 못했습니다. 잠시 후 새로고침해주세요.';$('cards').innerHTML='<p class="empty">조회할 정보가 없습니다.</p>';}
  }finally{busy=false;$('refresh').disabled=false;$('refresh').textContent='↻ 새로고침';}
 }
-async function leaflet(){
- if(window.L)return window.L;
- if(!mapLoading)mapLoading=new Promise((resolve,reject)=>{
-   const css=document.createElement('link');css.rel='stylesheet';css.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';css.integrity='sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';css.crossOrigin='anonymous';document.head.append(css);
-   const script=document.createElement('script');script.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';script.integrity='sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';script.crossOrigin='anonymous';script.onload=()=>resolve(window.L);script.onerror=()=>reject(Error('map'));document.head.append(script);
- });
- return mapLoading;
-}
-async function updateMap(){
- const points=visible().filter(hasLocation);
- $('mapMessage').textContent='검색 결과 '+fmt(visible().length)+'곳 중 원본 좌표가 있는 '+fmt(points.length)+'곳 표시 · 원본 좌표는 반올림되어 있을 수 있습니다.';
- try{
-  const L=await leaflet();if($('mapPanel').hidden)return;
-  if(!map){map=L.map('map',{scrollWheelZoom:false}).setView([35.18,129.06],11);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);layer=L.layerGroup().addTo(map);}
-  layer.clearLayers();
-  for(const p of points){const state=statusOf(p,data),u=links(p);L.marker([p.location.lat,p.location.lng],{icon:L.divIcon({className:'map-pin '+state,html:esc(usable(p,data)?fmt(p.curravacnt):'?'),iconSize:[36,30],iconAnchor:[18,15]}),title:p.parknm,alt:p.parknm}).bindPopup('<b>'+esc(p.parknm)+'</b><br>'+esc(labels[state])+'<br>'+esc(p.address||'상세 주소 미제공')+'<br><a target="_blank" rel="noopener noreferrer" href="'+esc(u.route)+'">길찾기 ↗</a>').addTo(layer);}
-  map.invalidateSize();const filter=JSON.stringify(options());if(points.length&&lastMapFilter!==filter){map.fitBounds(points.map(p=>[p.location.lat,p.location.lng]),{padding:[30,30],maxZoom:14});lastMapFilter=filter;}
- }catch{$('mapMessage').textContent='지도를 불러오지 못했습니다. 주차장 카드의 위치 보기·길찾기를 이용하세요.';}
-}
-$('mapToggle').addEventListener('click',()=>{const open=$('mapPanel').hidden;$('mapPanel').hidden=!open;$('mapToggle').setAttribute('aria-expanded',String(open));$('mapToggle').textContent=open?'지도 닫기':'지도 보기';if(open)updateMap();});
 $('searchForm').addEventListener('submit',e=>e.preventDefault());
 for(const id of ['query','district','filter','sort'])$(id).addEventListener(id==='query'?'input':'change',render);
 $('refresh').addEventListener('click',load);

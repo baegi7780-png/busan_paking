@@ -6,3 +6,7 @@
   Cache-Control: public, max-age=300
 /css/*
   Cache-Control: public, max-age=300
+/service-worker.js
+  Cache-Control: no-cache
+/manifest.webmanifest
+  Cache-Control: no-cache
