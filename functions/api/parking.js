@@ -39,7 +39,7 @@ async function fetchAll(base, key) {
   const items = [];
   for (let page = 1; page <= 20; page++) {
     u.searchParams.set('pageNo', String(page));
-    const r = await fetch(u, {signal, redirect: 'error'});
+    const r = await fetch(u, {signal, redirect: 'manual'});
     if (!r.ok) throw Error('http_' + r.status);
     const d = parseResponse(await r.text());
     items.push(...d.items);
