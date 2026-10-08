@@ -35,7 +35,7 @@ async function fetchAll(base, key) {
   u.searchParams.set('serviceKey', key);
   u.searchParams.set('resultType', 'json');
   u.searchParams.set('numOfRows', '1000');
-  const signal = AbortSignal.timeout(18000);
+  const signal = AbortSignal.timeout(30000);
   const items = [];
   for (let page = 1; page <= 20; page++) {
     u.searchParams.set('pageNo', String(page));
