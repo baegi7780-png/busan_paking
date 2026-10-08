@@ -1,4 +1,4 @@
-const CACHE_NAME = 'busan-parking-v5-20261008-qr-1';
+const CACHE_NAME = 'busan-parking-v5-20261008-ui-1';
 const FILES = ['/', '/index.html', '/css/style.css', '/js/app.js', '/js/parking-data.js', '/js/pwa.js', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/site-qr.png'];
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(FILES))));
 self.addEventListener('message', event => {

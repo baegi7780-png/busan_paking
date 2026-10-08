@@ -144,3 +144,7 @@ manifest.webmanifest, service-worker.js, js/pwa.js, icons/icon-192.png와 icon-5
 
 ## QR 공유
 화면의 QR로 공유하기 버튼으로 사이트 접속 QR을 표시하고 PNG로 다운로드합니다. QR 대상은 https://busan-paking.pages.dev/ 이며 외부 QR 서비스 요청 없이 정적 파일을 사용합니다. 도메인을 변경하면 icons/site-qr.png도 다시 생성해야 합니다. 서비스 워커 버전을 갱신했으므로 기존 설치 사용자는 새 버전으로 업데이트 버튼을 눌러 적용합니다.
+
+
+## UI 개편
+네이비 탐색 메뉴, 블루 빈자리 통계, 검색과 필터 패널, 상태별 카드 디자인을 적용했습니다. 모바일에서는 사이드 메뉴를 숨겨 검색과 목록에 집중합니다. 기존 API·검색·설치·QR 기능을 유지합니다. 디자인 참고: https://www.shacharpearl.com/project/parkam-app-cc 의 정보 위계와 요약 카드 접근을 참고해 새 레이아웃을 작성했으며 원본 이미지나 디자인 자산은 사용하지 않았습니다.
