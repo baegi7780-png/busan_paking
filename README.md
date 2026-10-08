@@ -140,3 +140,7 @@ manifest.webmanifest, service-worker.js, js/pwa.js, icons/icon-192.png와 icon-5
 - V5: feat: PWA 설치와 정적 캐시 및 업데이트 안내 추가
 
 로컬 자동검증은 설치 설정, 서비스 워커 등록과 캐시, API 캐시 제외, 오프라인 화면과 업데이트를 확인합니다. Android/iPhone 홈 화면 설치는 실제 기기에서 배포 후 확인해야 합니다.
+
+
+## QR 공유
+화면의 QR로 공유하기 버튼으로 사이트 접속 QR을 표시하고 PNG로 다운로드합니다. QR 대상은 https://busan-paking.pages.dev/ 이며 외부 QR 서비스 요청 없이 정적 파일을 사용합니다. 도메인을 변경하면 icons/site-qr.png도 다시 생성해야 합니다. 서비스 워커 버전을 갱신했으므로 기존 설치 사용자는 새 버전으로 업데이트 버튼을 눌러 적용합니다.

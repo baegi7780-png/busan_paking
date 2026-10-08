@@ -40,3 +40,10 @@ $('updateApp').addEventListener('click', () => {
   updating = true; $('updateApp').disabled = true;
   registration.waiting.postMessage({type:'ACTIVATE_UPDATE'});
 });
+
+$('shareQR').addEventListener('click', () => $('qrDialog').showModal());
+$('closeQR').addEventListener('click', () => $('qrDialog').close());
+$('qrDialog').addEventListener('click', event => {
+  const box = $('qrDialog').getBoundingClientRect();
+  if (event.target === $('qrDialog') && (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom)) $('qrDialog').close();
+});

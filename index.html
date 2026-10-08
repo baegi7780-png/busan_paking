@@ -8,7 +8,7 @@
 <header><div class="bar"><a class="brand" href="/"><span class="logo" aria-hidden="true">P</span>부산 주차 현황</a><span class="eyebrow">부산시설공단 실시간 제공 주차장</span></div></header>
 <main><div class="intro"><div><h1>주차할 자리 찾기</h1><p class="sub" id="scope">실시간 제공 주차장 조회 중 · 부산 전체 공영주차장 목록이 아닙니다.</p></div><button id="refresh" type="button">↻ 새로고침</button></div>
 <div class="notice" id="notice" role="status" aria-live="polite">주차장 정보를 확인하고 있습니다.</div>
-<section class="install-panel" aria-label="앱 설치 및 연결 상태"><p id="connection" role="status" hidden></p><button id="install" type="button" hidden>앱처럼 설치하기</button><p id="installHint" hidden></p><button id="updateApp" type="button" hidden>새 버전으로 업데이트</button><p id="pwaStatus" role="status" hidden></p></section>
+<section class="install-panel" aria-label="앱 설치 및 연결 상태"><p id="connection" role="status" hidden></p><button id="shareQR" type="button">QR로 공유하기</button><button id="install" type="button" hidden>앱처럼 설치하기</button><p id="installHint" hidden></p><button id="updateApp" type="button" hidden>새 버전으로 업데이트</button><p id="pwaStatus" role="status" hidden></p></section>
 <form id="searchForm" class="toolbar" role="search">
 <label class="search"><span class="sr-only">주차장 이름, 주소, 코드 검색</span><input id="query" type="search" placeholder="주차장 이름 · 주소 · 코드 검색" maxlength="100" autocomplete="off"></label>
 <label><span class="sr-only">지역</span><select id="district"><option value="all">모든 지역</option><option value="unknown">지역 정보 없음</option></select></label>
@@ -18,4 +18,5 @@
 <div class="results"><p id="resultCount" aria-live="polite">조회 중</p></div><p id="checked" class="tiny"></p>
 <section id="cards" class="cards" aria-label="주차장 현황"><p class="empty">정보를 불러오는 중입니다.</p></section>
 <footer class="footer"><p>실시간 제공: 부산시설공단 · 주소·요금 기본정보: 부산광역시 공공데이터포털</p><p>15분 이상 지난 정보, 비정상 수치, 조회 실패 후 보관 정보는 현재 잔여면 집계에서 제외합니다. 실제 주차 가능 여부는 현장에서 달라질 수 있습니다.</p><p id="basicStatus"></p><p>주소는 공공데이터 기준 참고정보이며 실제 위치와 다를 수 있습니다. 카카오맵은 부산과 주차장명으로 검색하며, 검색 결과의 장소를 직접 확인하세요. 구·군만 제공된 항목은 상세 주소로 표시하지 않습니다. 요금과 운영시간의 원본 기준일을 확인하세요.</p></footer>
-</main><script type="module" src="/js/app.js"></script><script type="module" src="/js/pwa.js"></script></body></html>
+</main>
+<dialog id="qrDialog" aria-labelledby="qrTitle"><div class="qr-top"><h2 id="qrTitle">부산 주차 현황 공유</h2><button id="closeQR" type="button" aria-label="QR 공유 닫기">닫기</button></div><p>다른 휴대폰의 카메라로 QR코드를 비추면 사이트가 열립니다.</p><img class="site-qr" src="/icons/site-qr.png" width="444" height="444" alt="부산 주차 현황 사이트 https://busan-paking.pages.dev/ 접속 QR코드"><a href="https://busan-paking.pages.dev/">busan-paking.pages.dev</a><div class="qr-actions"><a class="qr-download" href="/icons/site-qr.png" download="busan-parking-qr.png">QR 이미지 다운로드</a></div><p class="tiny">iPhone에서는 Safari 공유 메뉴 → 홈 화면에 추가로 설치할 수 있습니다.</p></dialog><script type="module" src="/js/app.js"></script><script type="module" src="/js/pwa.js"></script></body></html>
