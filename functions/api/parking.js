@@ -70,6 +70,7 @@ async function source(label, url, key, kv) {
     }
     if (record && (now - record.fetchedAt < TTL[label] || now < record.retryAt)) {
       memory.set(id, record);
+      if (record.error) console.warn('[parking-api]', JSON.stringify({source:label, event:'retry_wait', code:record.error, retryAt:new Date(record.retryAt).toISOString(), hasLastGood:Boolean(record.data), cache:shared?'kv':'instance'}));
       return {...record, shared};
     }
     let next;
@@ -78,6 +79,7 @@ async function source(label, url, key, kv) {
       next = {data, fetchedAt: Date.now(), retryAt: 0, error: null, readAt: Date.now()};
     } catch (e) {
       const error = safeCode(e);
+      console.warn('[parking-api]', JSON.stringify({source:label, event:'upstream_failure', code:error, detail:diagnosticMessage(e,key), hasLastGood:Boolean(record?.data)}));
       next = {data: record?.data || null, fetchedAt: record?.fetchedAt || 0,
         retryAt: Date.now() + (error === 'api_22' ? 3600000 : 300000), error, readAt: Date.now()};
     }
@@ -90,6 +92,15 @@ async function source(label, url, key, kv) {
   })();
   inflight.set(id, task);
   try { return await task; } finally { inflight.delete(id); }
+}
+// Never print upstream URLs, authentication keys, response bodies or stacks.
+function diagnosticMessage(error, key) {
+  let text = String(error?.message || 'Unknown failure');
+  for (const secret of [key, encodeURIComponent(key)]) if (secret) text = text.split(secret).join('[redacted]');
+  return text.replace(/https?:\/\/[^\s"'<>]+/gi, '[upstream URL]')
+    .replace(/(?:serviceKey|authorization)\s*[=:]\s*[^\s&,]+/gi, '[redacted]')
+    .replace(/[A-Za-z0-9_%+\/=.-]{32,}/g, '[redacted]')
+    .replace(/[\r\n]/g, ' ').slice(0, 200);
 }
 function safeCode(e) {
   const message = String(e?.message || '');
