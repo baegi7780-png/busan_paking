@@ -169,3 +169,7 @@ MCP 등록 예(JSON): {"mcpServers":{"busan-parking":{"url":"https://busan-pakin
 실제 설정 키/원격 MCP 지원은 클라이언트마다 다릅니다. MCP 요청의 Accept는 application/json, text/event-stream을 포함해야 합니다.
 
 추가 파일: functions/api/ai.js, functions/mcp.js, lib/parking-tools.js, lib/mcp.js, lib/http.js, js/ai.js. 기존 functions/api/parking.js의 dataset만 export하여 조회·캐시를 공유합니다. _routes.json에 AI/MCP 경로를 추가하고 PWA 버전과 정적 의존 파일 목록을 갱신했습니다. AI와 MCP 응답은 캐시하지 않습니다.
+
+
+### 가격·거리 질문 처리 개선
+가격순(sort=fee)은 원본 기본요금을 10분으로 환산하여 비교하며 실제 이용시간 총요금이 아닙니다. 추가요금/할인/시간대는 반영하지 않습니다. 알려지지 않은 요금은 0원으로 간주하지 않고 제외 건수를 안내합니다. freeOnly는 원본 기본요금 0원 조건이며 현재 무료 운영을 보장하지 않습니다. 이름·주소 매칭 결과가 없으면 동네 인근에 주차장이 없다는 뜻이 아님을 안내합니다. 거리/근처/주변 질문은 좌표 검증과 거리 계산이 없으므로 별도 안내하고 일반 이름 검색을 가장 가까운 결과처럼 표시하지 않습니다.
