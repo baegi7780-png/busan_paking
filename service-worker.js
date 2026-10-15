@@ -1,5 +1,5 @@
-const CACHE_NAME = 'busan-parking-v5-20261015-ai-2';
-const FILES = ['/', '/index.html', '/css/style.css', '/js/app.js', '/js/parking-data.js', '/js/pwa.js', '/js/ai.js', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/site-qr.png'];
+const CACHE_NAME = 'busan-parking-v5-20261015-nearby-1';
+const FILES = ['/', '/index.html', '/css/style.css', '/js/app.js', '/js/parking-data.js', '/js/pwa.js', '/js/ai.js', '/js/nearby.js', '/js/parking-results.js', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/site-qr.png'];
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(FILES))));
 self.addEventListener('message', event => {
   if (event.data?.type === 'ACTIVATE_UPDATE') self.skipWaiting();
