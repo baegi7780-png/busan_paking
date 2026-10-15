@@ -135,6 +135,12 @@ function enrich(p, basics) {
   const fullAddress = address && /\d/.test(address) ? (address.startsWith('부산') ? address : '부산광역시 ' + address) : '';
   return {...p, basic, basicSource:basis, address:fullAddress, district, location};
 }
+export async function basicInventory(env){
+ const key=clean(env.BUSAN_SERVICE_KEY);
+ if(!key)return {items:[],degraded:true,fetchedAt:null};
+ const record=await source('basic',endpoint(null,BASE).href,key,env.PARKING_CACHE);
+ return {items:record.data||[],degraded:Boolean(record.error),fetchedAt:record.fetchedAt?new Date(record.fetchedAt).toISOString():null};
+}
 export async function dataset(env) {
   const key = clean(env.BUSAN_SERVICE_KEY);
   if (!key) return {items:[], live:false, degraded:true, source:'unavailable', message:failureText('missing_key'), checkedAt:new Date().toISOString(), fetchedAt:null, basicOk:false, basicCount:0, cacheMode:'none'};

@@ -3,7 +3,8 @@
   "include": [
     "/api/parking",
     "/api/ai",
-    "/mcp"
+    "/mcp",
+    "/api/nearby"
   ],
   "exclude": []
 }
