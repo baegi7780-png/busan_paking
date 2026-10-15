@@ -4,6 +4,16 @@ import {dispatchMcp} from '../../lib/mcp.js';
 import {json,readJson,validOrigin,permit} from '../../lib/http.js';
 
 const MODEL='gemini-3.1-flash-lite';
+// Gemini's parameters field is its own Schema subset, not full JSON Schema.
+// Keep strict bounds/additionalProperties validation on our server.
+function geminiSchema(schema){
+ const result={type:schema.type.toUpperCase()};
+ if(schema.description)result.description=schema.description;
+ if(schema.enum)result.enum=schema.enum;
+ if(schema.properties)result.properties=Object.fromEntries(Object.entries(schema.properties).map(([k,v])=>[k,geminiSchema(v)]));
+ if(schema.required)result.required=schema.required;
+ return result;
+}
 let quotaUntil=0;
 const failure=(code,error,status=503,diagnostic)=>json({ok:false,code,error,...(diagnostic?{diagnostic}:{})},status,code==='quota'||code==='rate_limit'?{'Retry-After':'60'}:{});
 export async function onRequestGet({env}){
@@ -25,8 +35,8 @@ export async function onRequestPost({request,env}){
   const response=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,{
    method:'POST',redirect:'manual',signal:AbortSignal.timeout(20000),headers:{'Content-Type':'application/json','x-goog-api-key':key},
    body:JSON.stringify({systemInstruction:{parts:[{text:prompt}]},contents:[{role:'user',parts:[{text:body.question.trim()}]}],
-    tools:[{functionDeclarations:TOOLS.map(t=>({name:t.name,description:t.description,parameters:t.inputSchema}))}],
-    toolConfig:{functionCallingConfig:{mode:'AUTO'}},generationConfig:{temperature:0,maxOutputTokens:768,thinkingConfig:{thinkingLevel:'minimal'}}})
+    tools:[{functionDeclarations:TOOLS.map(t=>({name:t.name,description:t.description,parameters:geminiSchema(t.inputSchema)}))}],
+    toolConfig:{functionCallingConfig:{mode:'AUTO'}},generationConfig:{temperature:0,maxOutputTokens:768}})
   });
   if(!response.ok){
    let providerError;try{providerError=(await response.json()).error;}catch{}
