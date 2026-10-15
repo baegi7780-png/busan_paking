@@ -1,5 +1,5 @@
-const CACHE_NAME = 'busan-parking-v5-20261008-ui-1';
-const FILES = ['/', '/index.html', '/css/style.css', '/js/app.js', '/js/parking-data.js', '/js/pwa.js', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/site-qr.png'];
+const CACHE_NAME = 'busan-parking-v5-20261015-ai-1';
+const FILES = ['/', '/index.html', '/css/style.css', '/js/app.js', '/js/parking-data.js', '/js/pwa.js', '/js/ai.js', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/site-qr.png'];
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(FILES))));
 self.addEventListener('message', event => {
   if (event.data?.type === 'ACTIVATE_UPDATE') self.skipWaiting();
@@ -10,7 +10,7 @@ self.addEventListener('activate', event => event.waitUntil((async () => {
 })()));
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
-  if (event.request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/') || url.pathname === '/service-worker.js') return;
+  if (event.request.method !== 'GET' || url.origin !== self.location.origin || (url.pathname.startsWith('/api/') || url.pathname === '/mcp') || url.pathname === '/service-worker.js') return;
   const key = event.request.mode === 'navigate' && url.pathname === '/' ? '/' : url.pathname;
   if (!FILES.includes(key)) return;
   // Versioned app shell stays coherent until the user accepts the new worker.

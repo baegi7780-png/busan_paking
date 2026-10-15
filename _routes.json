@@ -1,5 +1,9 @@
 {
   "version": 1,
-  "include": ["/api/parking", "/mcp"],
+  "include": [
+    "/api/parking",
+    "/api/ai",
+    "/mcp"
+  ],
   "exclude": []
 }

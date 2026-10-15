@@ -148,3 +148,24 @@ manifest.webmanifest, service-worker.js, js/pwa.js, icons/icon-192.png와 icon-5
 
 ## UI 개편
 네이비 탐색 메뉴, 블루 빈자리 통계, 검색과 필터 패널, 상태별 카드 디자인을 적용했습니다. 모바일에서는 사이드 메뉴를 숨겨 검색과 목록에 집중합니다. 기존 API·검색·설치·QR 기능을 유지합니다. 디자인 참고: https://www.shacharpearl.com/project/parkam-app-cc 의 정보 위계와 요약 카드 접근을 참고해 새 레이아웃을 작성했으며 원본 이미지나 디자인 자산은 사용하지 않았습니다.
+
+
+## Gemini AI 검색과 MCP
+
+AI로 찾기 패널은 질문을 Gemini가 도구 호출 조건으로 해석하고 서버가 실제 API 결과를 카드로 표시합니다. 모델이 생성한 잔여면·주소·요금을 직접 출력하지 않습니다. 질문당 Gemini 호출은 최대 1회이며 대화 이력은 전송/저장하지 않습니다. 주차와 무관하거나 지원하지 않는 질문에는 검색 예시를 안내합니다. 결과의 갱신 시각과 비정상/지연 여부를 유지하며 화면에서도 30초마다 최신성을 재확인합니다.
+
+Cloudflare Production Secret GEMINI_API_KEY가 필요합니다. 키는 소스/로그/브라우저에 넣지 않습니다. 모델은 무료 티어를 제공하는 gemini-3.1-flash-lite로 고정하며 유료 모델로 자동 전환하지 않습니다. 프로젝트의 Free Tier 여부는 Google AI Studio에서 별도 확인해야 합니다. 코드가 계정의 결제 설정을 바꾸거나 무료 상태를 보장하지 않습니다. AI_ENABLED 텍스트 변수를 false로 설정하고 재배포하면 AI 호출만 중지합니다. GET /api/ai는 키 값 없이 설정 유무/모델만 표시합니다.
+
+Google의 429 응답에는 1분 대기 안내를 표시합니다. 한도마다 복구 시점은 다를 수 있습니다. 서버 인스턴스별 IP당 분당 4회/전체 분당 20회로 제한하고 요청 본문은 4KB, 질문은 500자까지 받습니다. 인스턴스별 제한이므로 전역 한도나 인증을 대신하지 않습니다. 공개 트래픽이 커지면 Turnstile/계정 인증/공유 호출 제한을 추가해야 합니다. 키/오류 응답 원문/질문은 로그로 남기지 않습니다.
+
+질문은 Google에 전송됩니다. 무료 티어에서는 Google 정책에 따라 제품 개선에 사용될 수 있음을 UI에 안내합니다. 개인 금융정보나 개인정보는 입력하지 않습니다. AI/공공 API 실패 시 일반 검색은 그대로 이용할 수 있습니다.
+
+MCP 주소: https://busan-paking.pages.dev/mcp
+Streamable HTTP JSON 응답 방식의 읽기 전용 서버이며 프로토콜 버전 2025-11-25를 제공합니다(2025-03-26/2025-06-18 호환). 공개 주차정보 조회만 제공합니다. initialize, notifications/initialized, ping, tools/list, tools/call을 처리합니다. 세션, SSE 스트림, Resources, Prompts, 쓰기 작업은 제공하지 않습니다. GET/DELETE는 405입니다. MCP 2026 방식과 인증/OAuth는 이번 범위에 포함하지 않습니다. MCP 클라이언트의 해당 버전 호환 여부를 확인하세요. 연결 도구는 find_parking_by_district, get_parking_detail, search_parking입니다.
+
+Gemini 함수 호출은 동일한 MCP 디스패처의 tools/call로 실행됩니다. 사이트 내부에서는 HTTP로 자기 자신을 다시 호출하지 않고 서버 함수로 직접 전달합니다. 외부 MCP 클라이언트는 /mcp를 사용할 수 있으며 이 경로에서는 Gemini를 호출하지 않으므로 Gemini 키가 필요하지 않습니다. HTTP Origin을 보낸 요청은 같은 출처만 허용하며 서버용 MCP 클라이언트는 Origin 없이 연결할 수 있습니다. API 인증키는 기존 서버 환경에서만 사용합니다.
+
+MCP 등록 예(JSON): {"mcpServers":{"busan-parking":{"url":"https://busan-paking.pages.dev/mcp"}}}
+실제 설정 키/원격 MCP 지원은 클라이언트마다 다릅니다. MCP 요청의 Accept는 application/json, text/event-stream을 포함해야 합니다.
+
+추가 파일: functions/api/ai.js, functions/mcp.js, lib/parking-tools.js, lib/mcp.js, lib/http.js, js/ai.js. 기존 functions/api/parking.js의 dataset만 export하여 조회·캐시를 공유합니다. _routes.json에 AI/MCP 경로를 추가하고 PWA 버전과 정적 의존 파일 목록을 갱신했습니다. AI와 MCP 응답은 캐시하지 않습니다.
