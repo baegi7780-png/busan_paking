@@ -5,7 +5,7 @@ import {json,readJson,validOrigin,permit} from '../../lib/http.js';
 
 const MODEL='gemini-3.1-flash-lite';
 let quotaUntil=0;
-const failure=(code,error,status=503)=>json({ok:false,code,error},status,code==='quota'||code==='rate_limit'?{'Retry-After':'60'}:{});
+const failure=(code,error,status=503,diagnostic)=>json({ok:false,code,error,...(diagnostic?{diagnostic}:{})},status,code==='quota'||code==='rate_limit'?{'Retry-After':'60'}:{});
 export async function onRequestGet({env}){
  return json({configured:Boolean(env.GEMINI_API_KEY?.trim()),enabled:env.AI_ENABLED!=='false',model:MODEL,tools:TOOLS.map(t=>t.name)});
 }
@@ -29,9 +29,13 @@ export async function onRequestPost({request,env}){
     toolConfig:{functionCallingConfig:{mode:'AUTO'}},generationConfig:{temperature:0,maxOutputTokens:768,thinkingConfig:{thinkingLevel:'minimal'}}})
   });
   if(!response.ok){
-   console.warn('[parking-ai]',JSON.stringify({event:'provider_error',status:response.status,model:MODEL}));
+   let providerError;try{providerError=(await response.json()).error;}catch{}
+   const text=String(providerError?.message||'');
+   const reason=/API.?key|API_KEY_INVALID/i.test(text)?'api_key':/not found|not supported for generateContent|not available|model.*not.*support/i.test(text)?'model':/additionalProperties|schema|Unknown name|thinking|Invalid JSON|Invalid value/i.test(text)?'request_format':/location|region|country/i.test(text)?'region':/permission|disabled|enable|blocked/i.test(text)?'permission':'other';
+   const diagnostic={providerStatus:response.status,reason};
+   console.warn('[parking-ai]',JSON.stringify({event:'provider_error',...diagnostic,model:MODEL}));
    if(response.status===429){quotaUntil=Date.now()+60000;return failure('quota','AI 무료 한도에 도달했거나 요청이 몰렸습니다. 잠시 후 다시 시도하거나 일반 검색을 이용해주세요.',429);}
-   if([400,401,403,404].includes(response.status))return failure('configuration','Gemini 키·모델 이용 권한을 확인 중입니다. 일반 검색을 이용해주세요.');
+   if([400,401,403,404].includes(response.status))return failure('configuration','Gemini 연결 설정을 확인 중입니다. 일반 검색을 이용해주세요.',503,diagnostic);
    return failure('provider','AI 연결이 지연되고 있습니다. 잠시 후 다시 시도해주세요.');
   }
   const answer=await response.json();
